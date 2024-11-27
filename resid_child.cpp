@@ -27,7 +27,8 @@ int audioCallback(void* outputBuffer, void* inputBuffer, unsigned int nBufferFra
             clock_accumulator -= 1.0;
         }
         short sid_output = sid_chip.output(); 
-        buffer[i] = static_cast<float>(sid_output) / 32768.0f;
+        float sample = static_cast<float>(sid_output) / 32768.0f;
+        buffer[i] = sample;
     }
 
     return 0;
@@ -46,8 +47,12 @@ int main() {
         // Configurer RtAudio
         RtAudio::StreamParameters outputParams;
         outputParams.deviceId = audio.getDefaultOutputDevice();
-        outputParams.nChannels = 1;
+        outputParams.nChannels = 2;
         outputParams.firstChannel = 0;
+
+        RtAudio::StreamOptions options;
+        options.flags = RTAUDIO_SCHEDULE_REALTIME;
+        options.flags = RTAUDIO_NONINTERLEAVED;
 
         // Démarrer le flux audio
         audio.openStream(&outputParams, nullptr, RTAUDIO_FLOAT32, sample_rate,
@@ -55,7 +60,7 @@ int main() {
         audio.startStream();
 
 
-        std::cout << "Appuyez sur Ctrl+C pour arrêter..." << std::endl;
+        std::cout << "READY" << std::endl;
 
         while (true) { 
             std::vector<uint8_t> buffer(2);
