@@ -47,7 +47,7 @@ int main() {
         // Configurer RtAudio
         RtAudio::StreamParameters outputParams;
         outputParams.deviceId = audio.getDefaultOutputDevice();
-        outputParams.nChannels = 2;
+        outputParams.nChannels = 1;
         outputParams.firstChannel = 0;
 
         RtAudio::StreamOptions options;
@@ -66,19 +66,11 @@ int main() {
             std::vector<uint8_t> buffer(2);
             std::cin.read(reinterpret_cast<char*>(buffer.data()), buffer.size());
             std::streamsize bytesRead = std::cin.gcount();
-            if (bytesRead == 0 && std::cin.eof()) {
-                std::cout.flush();
-                break;
-            }
-            if (bytesRead > 0) {
-                for (std::streamsize i = 0; i < bytesRead; i+=2) {
-                    int octet1 = static_cast<int>(buffer[i]);
-                    int octet2 = static_cast<int>(buffer[i+1]);
-                    sid_chip.write(octet1, octet2);  
-                    /*std::cout << octet1 << " " << octet2 << " ";
-                    std::cout << std::endl;;
-                    std::cout.flush();*/
-                }                       
+            if (bytesRead ==2) {
+                int octet1 = static_cast<int>(buffer[0]);
+                int octet2 = static_cast<int>(buffer[1]);
+                sid_chip.write(octet1, octet2);  
+              //  std::cout << octet1 << " " << octet2 << " ";
             }
         }
         
