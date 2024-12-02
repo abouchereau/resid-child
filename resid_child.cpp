@@ -7,13 +7,19 @@
 #include <unistd.h>
 
 
-SID sid_chip;
+SID sid_chip1;
+SID sid_chip2;
+SID sid_chip3;
 unsigned int sample_rate = 44100;
-unsigned int buffer_size = 1024;
+unsigned int buffer_size = 512;
 unsigned int frame_count = 0;
 double clock_accumulator = 0.0;
-float panLeft = 1.0;
-float panRight = 1.0;
+float panLeft1 = 1.0;
+float panRight1 = 1.0;
+float panLeft2 = 1.0;
+float panRight2 = 1.0;
+float panLeft3 = 1.0;
+float panRight3 = 1.0;
 
 
 // Callback audio pour RtAudio
@@ -27,14 +33,20 @@ int audioCallback(void* outputBuffer, void* inputBuffer, unsigned int nBufferFra
 
         clock_accumulator += clocks_per_sample;
         while (clock_accumulator >= 1.0) {
-            sid_chip.clock();  // Simuler un cycle d'horloge du SID
+            sid_chip1.clock();
+            sid_chip2.clock();
+            sid_chip3.clock();
             clock_accumulator -= 1.0;
         }
-        short sid_output = sid_chip.output(); 
-        float sample = static_cast<float>(sid_output) / 32768.0f;
+        short sid_output1 = sid_chip1.output(); 
+        short sid_output2 = sid_chip2.output(); 
+        short sid_output3 = sid_chip3.output(); 
+        float sample1 = static_cast<float>(sid_output1) / 32768.0f;
+        float sample2 = static_cast<float>(sid_output2) / 32768.0f;
+        float sample3 = static_cast<float>(sid_output3) / 32768.0f;
 
-        float sampleLeft = sample * panLeft;
-        float sampleRight = sample * panRight;
+        float sampleLeft = (sample1 * panLeft1) + (sample2 * panLeft2) + (sample3 * panLeft3);
+        float sampleRight = (sample1 * panRight1) + (sample2 * panRight2) + (sample3 * panRight3);
 
         buffer[i*2] = std::max(-1.0f, std::min(sampleLeft, 1.0f));
         buffer[i*2+1] = std::max(-1.0f, std::min(sampleRight, 1.0f));
@@ -46,12 +58,18 @@ int audioCallback(void* outputBuffer, void* inputBuffer, unsigned int nBufferFra
 
 int main() {
     try {
-        RtAudio audio;
+      //  RtAudio audio;
+        RtAudio::Api api = RtAudio::UNIX_JACK;
+        RtAudio audio(api);
+        //RtAudio::Api api = RtAudio::UNIX_JACK; // Utiliser ALSA
         if (audio.getDeviceCount() < 1) {
             throw std::runtime_error("Aucun périphérique audio trouvé.");
         }
+        std::cout << "API actuelle utilisée : " << RtAudio::getApiName(audio.getCurrentApi()) << std::endl;
 
-        sid_chip.set_sampling_parameters(985248.0, SAMPLE_RESAMPLE_INTERPOLATE, 44100.0,  -1.0, 0.97);  // Fréquence d'échantillonnage
+        sid_chip1.set_sampling_parameters(985248.0, SAMPLE_RESAMPLE_INTERPOLATE, 44100.0,  -1.0, 0.97);  // Fréquence d'échantillonnage
+        sid_chip2.set_sampling_parameters(985248.0, SAMPLE_RESAMPLE_INTERPOLATE, 44100.0,  -1.0, 0.97);  // Fréquence d'échantillonnage
+        sid_chip3.set_sampling_parameters(985248.0, SAMPLE_RESAMPLE_INTERPOLATE, 44100.0,  -1.0, 0.97);  // Fréquence d'échantillonnage
 
         // Configurer RtAudio
         RtAudio::StreamParameters outputParams;
@@ -60,9 +78,9 @@ int main() {
         outputParams.firstChannel = 0;
 
         RtAudio::StreamOptions options;
-        options.flags = RTAUDIO_SCHEDULE_REALTIME;
+       /* options.flags = RTAUDIO_SCHEDULE_REALTIME;
         options.flags = RTAUDIO_NONINTERLEAVED;
-        options.flags = RTAUDIO_MINIMIZE_LATENCY;
+        options.flags = RTAUDIO_MINIMIZE_LATENCY;*/
 
         // Démarrer le flux audio
         audio.openStream(&outputParams, nullptr, RTAUDIO_FLOAT32, sample_rate,
@@ -80,16 +98,41 @@ int main() {
                 int octet1 = static_cast<int>(buffer[0]);
                 int octet2 = static_cast<int>(buffer[1]);
 
-                if (octet1<25) {
-                    sid_chip.write(octet1, octet2);  
+                if (octet1>=21 && octet1<=24) {//filtres : toutes voix
+                    sid_chip1.write(octet1, octet2);  
+                    sid_chip2.write(octet1, octet2);  
+                    sid_chip3.write(octet1, octet2);  
+                }
+
+
+                if (octet1>=0 && octet1<=6) {
+                    sid_chip1.write(octet1, octet2);   
+                }
+                else if (octet1>=7 && octet1<=13) {
+                    sid_chip2.write(octet1, octet2);   
+                }
+                else if (octet1>=14 && octet1<=20) {
+                    sid_chip3.write(octet1, octet2);   
                 }
                 else if (octet1 == 32) {
-                    panLeft = static_cast<float>(octet2)/255.0;
+                    panLeft1 = static_cast<float>(octet2)/255.0;
                 }
                 else if (octet1 == 33) {
-                    panRight = static_cast<float>(octet2)/255.0;
+                    panRight1 = static_cast<float>(octet2)/255.0;
                 }
-              //  std::cout << octet1 << " " << octet2 << " ";
+                else if (octet1 == 34) {
+                    panLeft2 = static_cast<float>(octet2)/255.0;
+                }
+                else if (octet1 == 35) {
+                    panRight2 = static_cast<float>(octet2)/255.0;
+                }
+                else if (octet1 == 36) {
+                    panLeft3 = static_cast<float>(octet2)/255.0;
+                }
+                else if (octet1 == 37) {
+                    panRight3 = static_cast<float>(octet2)/255.0;
+                }
+                std::cout << octet1 << " " << octet2 << " ";
             }
         }
         
