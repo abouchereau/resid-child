@@ -1,0 +1,41 @@
+file(REMOVE_RECURSE
+  "CMakeFiles/resid.dir/envelope.cc.o"
+  "CMakeFiles/resid.dir/envelope.cc.o.d"
+  "CMakeFiles/resid.dir/extfilt.cc.o"
+  "CMakeFiles/resid.dir/extfilt.cc.o.d"
+  "CMakeFiles/resid.dir/filter.cc.o"
+  "CMakeFiles/resid.dir/filter.cc.o.d"
+  "CMakeFiles/resid.dir/pot.cc.o"
+  "CMakeFiles/resid.dir/pot.cc.o.d"
+  "CMakeFiles/resid.dir/sid.cc.o"
+  "CMakeFiles/resid.dir/sid.cc.o.d"
+  "CMakeFiles/resid.dir/version.cc.o"
+  "CMakeFiles/resid.dir/version.cc.o.d"
+  "CMakeFiles/resid.dir/voice.cc.o"
+  "CMakeFiles/resid.dir/voice.cc.o.d"
+  "CMakeFiles/resid.dir/wave.cc.o"
+  "CMakeFiles/resid.dir/wave.cc.o.d"
+  "CMakeFiles/resid.dir/wave6581_PST.cc.o"
+  "CMakeFiles/resid.dir/wave6581_PST.cc.o.d"
+  "CMakeFiles/resid.dir/wave6581_PS_.cc.o"
+  "CMakeFiles/resid.dir/wave6581_PS_.cc.o.d"
+  "CMakeFiles/resid.dir/wave6581_P_T.cc.o"
+  "CMakeFiles/resid.dir/wave6581_P_T.cc.o.d"
+  "CMakeFiles/resid.dir/wave6581__ST.cc.o"
+  "CMakeFiles/resid.dir/wave6581__ST.cc.o.d"
+  "CMakeFiles/resid.dir/wave8580_PST.cc.o"
+  "CMakeFiles/resid.dir/wave8580_PST.cc.o.d"
+  "CMakeFiles/resid.dir/wave8580_PS_.cc.o"
+  "CMakeFiles/resid.dir/wave8580_PS_.cc.o.d"
+  "CMakeFiles/resid.dir/wave8580_P_T.cc.o"
+  "CMakeFiles/resid.dir/wave8580_P_T.cc.o.d"
+  "CMakeFiles/resid.dir/wave8580__ST.cc.o"
+  "CMakeFiles/resid.dir/wave8580__ST.cc.o.d"
+  "libresid.a"
+  "libresid.pdb"
+)
+
+# Per-language clean rules from dependency scanning.
+foreach(lang CXX)
+  include(CMakeFiles/resid.dir/cmake_clean_${lang}.cmake OPTIONAL)
+endforeach()

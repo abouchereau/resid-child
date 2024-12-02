@@ -9,7 +9,7 @@ sudo make install
 
 
 =install rtaudio :=
-
+sudo apt install cmake
 git clone https://github.com/thestk/rtaudio.git
 cd rtaudio/
 mkdir build

@@ -1,0 +1,7 @@
+/home/maurice/www/resid-child/CMakeFiles/resid.dir
+/home/maurice/www/resid-child/CMakeFiles/edit_cache.dir
+/home/maurice/www/resid-child/CMakeFiles/rebuild_cache.dir
+/home/maurice/www/resid-child/CMakeFiles/list_install_components.dir
+/home/maurice/www/resid-child/CMakeFiles/install.dir
+/home/maurice/www/resid-child/CMakeFiles/install/local.dir
+/home/maurice/www/resid-child/CMakeFiles/install/strip.dir

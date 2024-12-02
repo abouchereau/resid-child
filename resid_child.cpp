@@ -9,7 +9,7 @@
 
 SID sid_chip;
 unsigned int sample_rate = 44100;
-unsigned int buffer_size = 512;
+unsigned int buffer_size = 1024;
 unsigned int frame_count = 0;
 double clock_accumulator = 0.0;
 // Callback audio pour RtAudio
@@ -53,6 +53,7 @@ int main() {
         RtAudio::StreamOptions options;
         options.flags = RTAUDIO_SCHEDULE_REALTIME;
         options.flags = RTAUDIO_NONINTERLEAVED;
+        options.flags = RTAUDIO_MINIMIZE_LATENCY;
 
         // Démarrer le flux audio
         audio.openStream(&outputParams, nullptr, RTAUDIO_FLOAT32, sample_rate,

@@ -1,0 +1,10 @@
+/usr/local/lib/libresid.a
+/usr/local/include/resid/envelope.h
+/usr/local/include/resid/extfilt.h
+/usr/local/include/resid/filter.h
+/usr/local/include/resid/pot.h
+/usr/local/include/resid/sid.h
+/usr/local/include/resid/siddefs.h
+/usr/local/include/resid/spline.h
+/usr/local/include/resid/voice.h
+/usr/local/include/resid/wave.h
