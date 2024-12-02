@@ -45,8 +45,8 @@ int audioCallback(void* outputBuffer, void* inputBuffer, unsigned int nBufferFra
         float sample2 = static_cast<float>(sid_output2) / 32768.0f;
         float sample3 = static_cast<float>(sid_output3) / 32768.0f;
 
-        float sampleLeft = (sample1 * panLeft1) + (sample2 * panLeft2) + (sample3 * panLeft3);
-        float sampleRight = (sample1 * panRight1) + (sample2 * panRight2) + (sample3 * panRight3);
+        float sampleLeft = 0.5*((sample1 * panLeft1) + (sample2 * panLeft2) + (sample3 * panLeft3));
+        float sampleRight = 0.5*((sample1 * panRight1) + (sample2 * panRight2) + (sample3 * panRight3));
 
         buffer[i*2] = std::max(-1.0f, std::min(sampleLeft, 1.0f));
         buffer[i*2+1] = std::max(-1.0f, std::min(sampleRight, 1.0f));
