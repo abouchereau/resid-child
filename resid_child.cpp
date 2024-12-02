@@ -46,7 +46,8 @@ int audioCallback(void* outputBuffer, void* inputBuffer, unsigned int nBufferFra
 
 int main() {
     try {
-        RtAudio audio;
+        RtAudio::Api api = RtAudio::UNIX_JACK;
+        RtAudio audio(api);
         if (audio.getDeviceCount() < 1) {
             throw std::runtime_error("Aucun périphérique audio trouvé.");
         }
