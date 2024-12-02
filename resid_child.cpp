@@ -11,7 +11,7 @@ SID sid_chip1;
 SID sid_chip2;
 SID sid_chip3;
 unsigned int sample_rate = 44100;
-unsigned int buffer_size = 512;
+unsigned int buffer_size = 1024;
 unsigned int frame_count = 0;
 double clock_accumulator = 0.0;
 float panLeft1 = 1.0;
