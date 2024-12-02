@@ -12,6 +12,10 @@ unsigned int sample_rate = 44100;
 unsigned int buffer_size = 1024;
 unsigned int frame_count = 0;
 double clock_accumulator = 0.0;
+float panLeft = 1.0;
+float panRight = 1.0;
+
+
 // Callback audio pour RtAudio
 int audioCallback(void* outputBuffer, void* inputBuffer, unsigned int nBufferFrames,
                   double streamTime, RtAudioStreamStatus status, void* userData) {
@@ -28,7 +32,12 @@ int audioCallback(void* outputBuffer, void* inputBuffer, unsigned int nBufferFra
         }
         short sid_output = sid_chip.output(); 
         float sample = static_cast<float>(sid_output) / 32768.0f;
-        buffer[i] = sample;
+
+        float sampleLeft = sample * panLeft;
+        float sampleRight = sample * panRight;
+
+        buffer[i*2] = std::max(-1.0f, std::min(sampleLeft, 1.0f));
+        buffer[i*2+1] = std::max(-1.0f, std::min(sampleRight, 1.0f));
     }
 
     return 0;
@@ -47,7 +56,7 @@ int main() {
         // Configurer RtAudio
         RtAudio::StreamParameters outputParams;
         outputParams.deviceId = audio.getDefaultOutputDevice();
-        outputParams.nChannels = 1;
+        outputParams.nChannels = 2;
         outputParams.firstChannel = 0;
 
         RtAudio::StreamOptions options;
@@ -70,7 +79,16 @@ int main() {
             if (bytesRead ==2) {
                 int octet1 = static_cast<int>(buffer[0]);
                 int octet2 = static_cast<int>(buffer[1]);
-                sid_chip.write(octet1, octet2);  
+
+                if (octet1<25) {
+                    sid_chip.write(octet1, octet2);  
+                }
+                else if (octet1 == 32) {
+                    panLeft = static_cast<float>(octet2)/255.0;
+                }
+                else if (octet1 == 33) {
+                    panRight = static_cast<float>(octet2)/255.0;
+                }
               //  std::cout << octet1 << " " << octet2 << " ";
             }
         }
