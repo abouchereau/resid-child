@@ -77,11 +77,11 @@ int main() {
             int octet2 = static_cast<int>(buffer[1]);
             switch(octet1) {
                 case 1: v1_left =  static_cast<float>(octet2)/255.0f;break;
-                case 2: v1_right =  static_cast<float>(octet2)/255.0f;break;
+                case 2: v1_right = static_cast<float>(octet2)/255.0f;break;
                 case 3: v2_left =  static_cast<float>(octet2)/255.0f;break;
-                case 4: v2_right =  static_cast<float>(octet2)/255.0f;break;
+                case 4: v2_right = static_cast<float>(octet2)/255.0f;break;
                 case 5: v3_left =  static_cast<float>(octet2)/255.0f;break;
-                case 6: v3_right =  static_cast<float>(octet2)/255.0f;break;
+                case 6: v3_right = static_cast<float>(octet2)/255.0f;break;
             }
             //  std::cout << octet1 << " " << octet2 << " ";
         }
