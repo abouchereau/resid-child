@@ -24,4 +24,8 @@ ls /usr/local/include | grep rtaudio
 
 = compile =
 
-g++ -o resid_child resid_child.cpp -lrtaudio -lresid -lpthread
+g++ -o sidjack sidjack.cpp -ljack
+
+
+lancer jack 
+jackd -d alsa -p 256 -r 44100
