@@ -52,9 +52,9 @@ int main() {
         outputParams.firstChannel = 0;
 
         RtAudio::StreamOptions options;
-        options.flags = RTAUDIO_SCHEDULE_REALTIME;
+     /*   options.flags = RTAUDIO_SCHEDULE_REALTIME;
         options.flags = RTAUDIO_NONINTERLEAVED;
-        options.flags = RTAUDIO_MINIMIZE_LATENCY;
+        options.flags = RTAUDIO_MINIMIZE_LATENCY;*/
 
         // Démarrer le flux audio
         audio.openStream(&outputParams, nullptr, RTAUDIO_FLOAT32, sample_rate,

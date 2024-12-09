@@ -2,6 +2,9 @@
 #include <cmath>
 #include <iostream>
 #include <resid/sid.h>
+#include <vector>
+#include <cstdint>
+#include <unistd.h>
 
 jack_port_t *output_port;
 jack_client_t *client;
@@ -9,7 +12,8 @@ jack_client_t *client;
 SID sid_chip;
 double clock_accumulator = 0.0;
 
-int process(jack_nframes_t nframes) {
+
+int process(jack_nframes_t nframes, void *arg) {
     float *buffer = (float *)jack_port_get_buffer(output_port, nframes);
 
     double clocks_per_sample = 985248.0 / 44100.0; // Fréquence d'horloge / Fréquence d'échantillonnage

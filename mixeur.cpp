@@ -1,5 +1,6 @@
 #include <jack/jack.h>
 #include <iostream>
+#include <vector>
 
 jack_port_t *input_ports[3];
 jack_port_t *output_ports[2];
@@ -12,7 +13,7 @@ float v2_right = 0.75f;
 float v3_left = 0.0f;
 float v3_right = 1.0f;
 
-int process(jack_nframes_t nframes) {
+int process(jack_nframes_t nframes, void *arg) {
     float *in1 = (float *)jack_port_get_buffer(input_ports[0], nframes);
     float *in2 = (float *)jack_port_get_buffer(input_ports[1], nframes);
     float *in3 = (float *)jack_port_get_buffer(input_ports[2], nframes);
@@ -68,6 +69,23 @@ int main() {
         }
     }
 
+
+
+    if (jack_connect(client, jack_port_name(output_ports[0]), "system:playback_1") != 0) {
+        std::cerr << "Impossible de connecter la sortie gauche.\n";
+    }
+
+    if (jack_connect(client, jack_port_name(output_ports[1]), "system:playback_2") != 0) {
+        std::cerr << "Impossible de connecter la sortie droite.\n";
+    }
+    
+
+
+
+
+
+    std::cout << "READY" << std::endl;
+
     while (true) { 
         std::vector<uint8_t> buffer(2);
         std::cin.read(reinterpret_cast<char*>(buffer.data()), buffer.size());
@@ -83,7 +101,6 @@ int main() {
                 case 5: v3_left =  static_cast<float>(octet2)/255.0f;break;
                 case 6: v3_right = static_cast<float>(octet2)/255.0f;break;
             }
-            //  std::cout << octet1 << " " << octet2 << " ";
         }
     }
     
