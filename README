@@ -28,4 +28,10 @@ g++ -o sidjack sidjack.cpp -ljack -lresid
 g++ -o mixeur mixeur.cpp -ljack 
 
 lancer jack 
-jackd -Rd alsa -d hw:1 -r 44100 -p 1024 -n 2  >/dev/null 2>&1 &
+jackd -R -p70 -d alsa -d hw:1 -r 44100 -p 128 -n 2  >/dev/null 2>&1 &
+
+
+
+sudo usermod -a -G audio tonyb
+dpkg-reconfigure -p high jackd2
+
