@@ -24,8 +24,8 @@ ls /usr/local/include | grep rtaudio
 
 = compile =
 
-g++ -o sidjack sidjack.cpp -ljack
-
+g++ -o sidjack sidjack.cpp -ljack -lresid
+g++ -o mixeur mixeur.cpp -ljack 
 
 lancer jack 
-jackd -d alsa -p 256 -r 44100
+jackd -Rd alsa -d hw:1 -r 44100 -p 1024 -n 2  >/dev/null 2>&1 &
