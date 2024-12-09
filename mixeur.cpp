@@ -7,11 +7,11 @@ jack_port_t *output_ports[2];
 jack_client_t *client;
 
 float v1_left = 1.0f;
-float v1_right = 0.0f;
-float v2_left = 0.75f;
-float v2_right = 0.75f;
-float v3_left = 0.0f;
-float v3_right = 1.0f;
+float v1_right = 1.0f;
+float v2_left = 0.85f;
+float v2_right = 0.15f;
+float v3_left = 0.15f;
+float v3_right = 0.85f;
 
 int process(jack_nframes_t nframes, void *arg) {
     float *in1 = (float *)jack_port_get_buffer(input_ports[0], nframes);
