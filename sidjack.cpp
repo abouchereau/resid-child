@@ -53,7 +53,7 @@ int main() {
             int octet1 = static_cast<int>(buffer[0]);
             int octet2 = static_cast<int>(buffer[1]);
             sid_chip.write(octet1, octet2);  
-            std::cout << octet1 << " " << octet2 << " ";
+            //std::cout << octet1 << " " << octet2 << " ";
         }
     }
 
