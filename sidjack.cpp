@@ -13,11 +13,13 @@ jack_client_t *client;
 
 SID sid_chip;
 
+//paramètres par défaut
 double NB_CLOCKS_PER_SECOND = 985248.0;//PAL // 1022727.0 //NTSC
 double SAMPLE_FRAME = 44100.0;
 double BUFFER = 128.0;
 
 double NB_CLOCKS = NB_CLOCKS_PER_SECOND / SAMPLE_FRAME;//22.34122..
+
 double accumulator = 0.0;
 
 //nframes == buffer (128, ...1024)
@@ -60,6 +62,31 @@ int main(int argc, char* argv[]) {
         std::cerr << "Erreur lors de l'ouverture du client JACK" << std::endl;
         return 1;
     }
+
+    sid_chip.set_sampling_parameters(NB_CLOCKS_PER_SECOND, SAMPLE_FAST, SAMPLE_FRAME,  -1.0, 0.97);  // Fréquence d'échantillonnage
+    output_port = jack_port_register(client, "sidVoice", JACK_DEFAULT_AUDIO_TYPE, JackPortIsOutput, 0);
+    jack_set_process_callback(client, process, NULL);
+    jack_activate(client);   
+    
+    std::cout << "READY" << std::endl;
+
+    while (true) { 
+        std::vector<uint8_t> buffer(2);
+        std::cin.read(reinterpret_cast<char*>(buffer.data()), buffer.size());
+        std::streamsize bytesRead = std::cin.gcount();
+        if (bytesRead ==2) {
+            int octet1 = static_cast<int>(buffer[0]);
+            int octet2 = static_cast<int>(buffer[1]);
+            sid_chip.write(octet1, octet2);  
+            //std::cout << octet1 << " " << octet2 << " ";
+        }
+    }
+
+    jack_client_close(client);
+    return 0;
+}
+
+
 //TODO essayer avec d'autres Sample PARAMETES
 
 
@@ -119,28 +146,3 @@ Dans la bibliothèque ReSID, le paramètre sampling_method détermine la manièr
         Qualité sonore inférieure à SAMPLE_RESAMPLE_INTERPOLATE pour les sons complexes.*/
 
 
-
-
-
-    sid_chip.set_sampling_parameters(NB_CLOCKS_PER_SECOND, SAMPLE_FAST, SAMPLE_FRAME,  -1.0, 0.97);  // Fréquence d'échantillonnage
-    output_port = jack_port_register(client, "sidVoice", JACK_DEFAULT_AUDIO_TYPE, JackPortIsOutput, 0);
-    jack_set_process_callback(client, process, NULL);
-    jack_activate(client);   
-    
-    std::cout << "READY" << std::endl;
-
-    while (true) { 
-        std::vector<uint8_t> buffer(2);
-        std::cin.read(reinterpret_cast<char*>(buffer.data()), buffer.size());
-        std::streamsize bytesRead = std::cin.gcount();
-        if (bytesRead ==2) {
-            int octet1 = static_cast<int>(buffer[0]);
-            int octet2 = static_cast<int>(buffer[1]);
-            sid_chip.write(octet1, octet2);  
-            //std::cout << octet1 << " " << octet2 << " ";
-        }
-    }
-
-    jack_client_close(client);
-    return 0;
-}
