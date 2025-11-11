@@ -13,18 +13,67 @@ float v2_right = 0.15f;
 float v3_left = 0.15f;
 float v3_right = 0.85f;
 
+int v1_preset = 0;
+int v2_preset = 0;
+int v3_preset = 0;
+
+// 1.0 = neutre, 2.0 = plus de saturation
+float soft_clip(float x, float drive) {
+    x = x * drive;
+    if (x > 1.0f) return 1.0f;
+    if (x < -1.0f) return -1.0f;
+    return x - (x * x * x) / 3.0f;  // courbe douce
+}
+
+//saturate(sample, 1.5f, 0.0f);  // drive 1.5, symétrique
+//saturate(sample, 2.0f, 0.1f);  // un peu asymétrique, plus chaud
+//saturate(x, 1.3f, 0.0f);  //juste assez pour adoucir les bords du carré
+//saturate(x, 1.8f, 0.05f);
+float saturate(float x, float drive, float bias) {
+    // Ajoute un bias (optionnel) pour simuler un étage asymétrique
+    float z = (x + bias) * drive;
+    // Courbe tanh pour saturation douce
+    float y = tanhf(z);
+    // Normalisation de la sortie
+    return y / tanhf(drive);
+}
+
+float fx(float x, int num) {
+    switch(num) {
+        case 0 : return x;
+        case 1 : return soft_clip(x, 1.0f);
+        case 2 : return soft_clip(x, 1.5f);
+        case 3 : return soft_clip(x, 2.0f);
+        case 4 : return saturate(x, 1.5f, 0.0f);
+        case 5 : return saturate(x, 2.0f, 0.1f);
+        case 6 : return saturate(x, 1.3f, 0.0f);
+        case 7 : return saturate(x, 1.8f, 0.05f);
+        default: return x; // par défaut, pas de traitement
+    }
+}
+
+
 int process(jack_nframes_t nframes, void *arg) {
     float *in1 = (float *)jack_port_get_buffer(input_ports[0], nframes);
     float *in2 = (float *)jack_port_get_buffer(input_ports[1], nframes);
     float *in3 = (float *)jack_port_get_buffer(input_ports[2], nframes);
+
     
     float *out_left = (float *)jack_port_get_buffer(output_ports[0], nframes);
     float *out_right = (float *)jack_port_get_buffer(output_ports[1], nframes);
 
     for (jack_nframes_t i = 0; i < nframes; i++) {
-        out_left[i] = in1[i] * v1_left + in2[i] * v2_left + in3[i] * v3_left; // Mixage gauche
-        out_right[i] = in1[i] * v1_right + in2[i] * v2_right + in3[i] * v3_right; // Mixage droite
+        float p1 = fx(in1[i], v1_preset);
+        float p2 = fx(in2[i], v2_preset);
+        float p3 = fx(in3[i], v3_preset);
+        out_left[i] = p1*v1_left + p2*v2_left + p3*v3_left;
+        out_right[i] = p1*v1_right + p2*v2_right + p3*v3_right;
     }
+    if (out_left[i] > 1.0f) out_left[i] = 1.0f;
+    if (out_left[i] < -1.0f) out_left[i] = -1.0f;
+    
+    if (out_right[i] > 1.0f) out_right[i] = 1.0f;
+    if (out_right[i] < -1.0f) out_right[i] = -1.0f;
     
     return 0;
 }
@@ -79,11 +128,6 @@ int main() {
         std::cerr << "Impossible de connecter la sortie droite.\n";
     }
     
-
-
-
-
-
     std::cout << "READY" << std::endl;
 
     while (true) { 
@@ -101,6 +145,9 @@ int main() {
                 case 4: v2_right = static_cast<float>(octet2)/255.0f;break;
                 case 5: v3_left =  static_cast<float>(octet2)/255.0f;break;
                 case 6: v3_right = static_cast<float>(octet2)/255.0f;break;
+                case 7 : v1_preset = static_cast<int>(octet2);break;
+                case 8 : v2_preset = static_cast<int>(octet2);break;
+                case 9 : v3_preset = static_cast<int>(octet2);break;
             }
         }
     }
@@ -108,3 +155,4 @@ int main() {
     jack_client_close(client);
     return 0;
 }
+
