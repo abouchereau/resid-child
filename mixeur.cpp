@@ -1,6 +1,7 @@
 #include <jack/jack.h>
 #include <iostream>
 #include <vector>
+#include <cmath>
 
 jack_port_t *input_ports[3];
 jack_port_t *output_ports[2];
@@ -68,13 +69,15 @@ int process(jack_nframes_t nframes, void *arg) {
         float p3 = fx(in3[i], v3_preset);
         out_left[i] = p1*v1_left + p2*v2_left + p3*v3_left;
         out_right[i] = p1*v1_right + p2*v2_right + p3*v3_right;
+
+        if (out_left[i] > 1.0f) out_left[i] = 1.0f;
+        if (out_left[i] < -1.0f) out_left[i] = -1.0f;
+        
+        if (out_right[i] > 1.0f) out_right[i] = 1.0f;
+        if (out_right[i] < -1.0f) out_right[i] = -1.0f;
+        
     }
-    if (out_left[i] > 1.0f) out_left[i] = 1.0f;
-    if (out_left[i] < -1.0f) out_left[i] = -1.0f;
-    
-    if (out_right[i] > 1.0f) out_right[i] = 1.0f;
-    if (out_right[i] < -1.0f) out_right[i] = -1.0f;
-    
+
     return 0;
 }
 
