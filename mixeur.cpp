@@ -3,7 +3,7 @@
 #include <vector>
 #include <cmath>
 
-jack_port_t *input_ports[4];
+jack_port_t *input_ports[3];
 jack_port_t *output_ports[2];
 jack_client_t *client;
 
@@ -20,6 +20,14 @@ int v1_preset = 0;
 int v2_preset = 0;
 int v3_preset = 0;
 int v4_preset = 0;
+
+float* delayBuffer = nullptr;
+jack_nframes_t delaySize = 0;
+jack_nframes_t writePos = 0;
+jack_nframes_t delaySamples = 0;
+float feedback = 0.35f;
+
+
 
 // 1.0 = neutre, 2.0 = plus de saturation
 float soft_clip(float x, float drive) {
@@ -61,81 +69,106 @@ int process(jack_nframes_t nframes, void *arg) {
     float *in1 = (float *)jack_port_get_buffer(input_ports[0], nframes);
     float *in2 = (float *)jack_port_get_buffer(input_ports[1], nframes);
     float *in3 = (float *)jack_port_get_buffer(input_ports[2], nframes);
-    float *in4 = (float *)jack_port_get_buffer(input_ports[3], nframes);
 
-
-    
-    float *out_left = (float *)jack_port_get_buffer(output_ports[0], nframes);
+    float *out_left  = (float *)jack_port_get_buffer(output_ports[0], nframes);
     float *out_right = (float *)jack_port_get_buffer(output_ports[1], nframes);
 
     for (jack_nframes_t i = 0; i < nframes; i++) {
-        float p1 = fx(in1[i], v1_preset);
-        float p2 = fx(in2[i], v2_preset);
-        float p3 = fx(in3[i], v3_preset);
-        float p4 = fx(in4[i], v4_preset);
-        out_left[i] = p1*v1_left + p2*v2_left + p3*v3_left + p4*v4_left;
-        out_right[i] = p1*v1_right + p2*v2_right + p3*v3_right + p4*v4_right;
 
-        if (out_left[i] > 1.0f) out_left[i] = 1.0f;
-        if (out_left[i] < -1.0f) out_left[i] = -1.0f;
-        
-        if (out_right[i] > 1.0f) out_right[i] = 1.0f;
-        if (out_right[i] < -1.0f) out_right[i] = -1.0f;
-        
+        // --- Voix dry ---
+        float dry = fx(in1[i], v1_preset);
+        float p2  = fx(in2[i], v2_preset);
+        float p3  = fx(in3[i], v3_preset);
+
+        // --- Lecture delay ---
+        jack_nframes_t readPos =
+            (writePos + delaySize - delaySamples) % delaySize;
+
+        float delayed = delayBuffer[readPos];
+
+        // --- Écriture delay (avec feedback) ---
+        delayBuffer[writePos] = dry + delayed * feedback;
+
+        writePos = (writePos + 1) % delaySize;
+
+        float p4 = fx(delayed, v4_preset);
+
+        // --- Mix ---
+        float left =
+            dry * v1_left +
+            p2  * v2_left +
+            p3  * v3_left +
+            p4  * v4_left;
+
+        float right =
+            dry * v1_right +
+            p2  * v2_right +
+            p3  * v3_right +
+            p4  * v4_right;
+
+        // --- Clamp ---
+        out_left[i]  = std::max(-1.0f, std::min(1.0f, left));
+        out_right[i] = std::max(-1.0f, std::min(1.0f, right));
     }
 
     return 0;
 }
 
+
 int main() {
     client = jack_client_open("mixeur", JackNullOption, NULL);
     if (!client) {
-        std::cerr << "Erreur lors de l'ouverture du client JACK" << std::endl;
+        std::cout << "Erreur lors de l'ouverture du client JACK" << std::endl;
         return 1;
     }
 
+ 
     input_ports[0] = jack_port_register(client, "input1", JACK_DEFAULT_AUDIO_TYPE, JackPortIsInput, 0);
     input_ports[1] = jack_port_register(client, "input2", JACK_DEFAULT_AUDIO_TYPE, JackPortIsInput, 0);
     input_ports[2] = jack_port_register(client, "input3", JACK_DEFAULT_AUDIO_TYPE, JackPortIsInput, 0);
-    input_ports[3] = jack_port_register(client, "input4", JACK_DEFAULT_AUDIO_TYPE, JackPortIsInput, 0);
+    //input_ports[3] = jack_port_register(client, "input4", JACK_DEFAULT_AUDIO_TYPE, JackPortIsInput, 0);
 
     output_ports[0] = jack_port_register(client, "output_left", JACK_DEFAULT_AUDIO_TYPE, JackPortIsOutput, 0);
     output_ports[1] = jack_port_register(client, "output_right", JACK_DEFAULT_AUDIO_TYPE, JackPortIsOutput, 0);
 
     jack_set_process_callback(client, process, NULL);
-    
-    // Activation du client
+
+    jack_nframes_t sampleRate = jack_get_sample_rate(client);
+    delaySamples = (sampleRate * 300) / 1000;
+    delaySize = sampleRate * 2;
+    delayBuffer = new float[delaySize];
+    std::fill(delayBuffer, delayBuffer + delaySize, 0.0f);
+
+    // ---- MAINTENANT seulement ----
     if (jack_activate(client)) {
-        std::cerr << "Impossible d'activer le client" << std::endl;
+        std::cout << "Impossible d'activer le client" << std::endl;
         return 1;
     }
 
-    // Connexion automatique aux ports de sortie des instances de squareWave
+   // Connexion automatique aux ports de sortie des instances de squareWave
     const char **ports;
-    
+
     // Obtenir les ports disponibles pour les connexions
     ports = jack_get_ports(client, NULL, NULL, JackPortIsOutput);
     
     if (ports == NULL) {
-        std::cerr << "Aucun port de sortie disponible" << std::endl;
+        std::cout << "Aucun port de sortie disponible" << std::endl;
         return 1;
     }
-
     // Connecter les ports d'entrée aux ports de sortie disponibles
-    for (int i = 0; i < 4 && ports[i] != NULL; i++) {
+    for (int i = 0; i < 3 && ports[i] != NULL; i++) {
         if (jack_connect(client, ports[i], jack_port_name(input_ports[i])) != 0) {
-            std::cerr << "Erreur lors de la connexion des ports" << std::endl;
+            std::cout << "Erreur lors de la connexion des ports" << std::endl;
         }
     }
 
 
-
     if (jack_connect(client, jack_port_name(output_ports[0]), "system:playback_1") != 0) {
-        std::cerr << "Impossible de connecter la sortie gauche.\n";
+        std::cout << "Impossible de connecter la sortie gauche.\n";
     }
 
     if (jack_connect(client, jack_port_name(output_ports[1]), "system:playback_2") != 0) {
-        std::cerr << "Impossible de connecter la sortie droite.\n";
+        std::cout << "Impossible de connecter la sortie droite.\n";
     }
     
     std::cout << "READY" << std::endl;
@@ -161,6 +194,7 @@ int main() {
                 case 10 : v2_preset = static_cast<int>(octet2);break;
                 case 11 : v3_preset = static_cast<int>(octet2);break;
                 case 12 : v4_preset = static_cast<int>(octet2);break;
+                case 13: delaySamples = (jack_get_sample_rate(client) * octet2 * 2) / 1000; break;
             }
         }
     }
