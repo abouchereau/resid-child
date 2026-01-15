@@ -3,7 +3,7 @@
 #include <vector>
 #include <cmath>
 
-jack_port_t *input_ports[3];
+jack_port_t *input_ports[4];
 jack_port_t *output_ports[2];
 jack_client_t *client;
 
@@ -13,10 +13,13 @@ float v2_left = 0.85f;
 float v2_right = 0.15f;
 float v3_left = 0.15f;
 float v3_right = 0.85f;
+float v4_left = 1.0f;
+float v4_right = 1.0f;
 
 int v1_preset = 0;
 int v2_preset = 0;
 int v3_preset = 0;
+int v4_preset = 0;
 
 // 1.0 = neutre, 2.0 = plus de saturation
 float soft_clip(float x, float drive) {
@@ -58,6 +61,8 @@ int process(jack_nframes_t nframes, void *arg) {
     float *in1 = (float *)jack_port_get_buffer(input_ports[0], nframes);
     float *in2 = (float *)jack_port_get_buffer(input_ports[1], nframes);
     float *in3 = (float *)jack_port_get_buffer(input_ports[2], nframes);
+    float *in4 = (float *)jack_port_get_buffer(input_ports[3], nframes);
+
 
     
     float *out_left = (float *)jack_port_get_buffer(output_ports[0], nframes);
@@ -67,8 +72,9 @@ int process(jack_nframes_t nframes, void *arg) {
         float p1 = fx(in1[i], v1_preset);
         float p2 = fx(in2[i], v2_preset);
         float p3 = fx(in3[i], v3_preset);
-        out_left[i] = p1*v1_left + p2*v2_left + p3*v3_left;
-        out_right[i] = p1*v1_right + p2*v2_right + p3*v3_right;
+        float p4 = fx(in4[i], v4_preset);
+        out_left[i] = p1*v1_left + p2*v2_left + p3*v3_left + p4*v4_left;
+        out_right[i] = p1*v1_right + p2*v2_right + p3*v3_right + p4*v4_right;
 
         if (out_left[i] > 1.0f) out_left[i] = 1.0f;
         if (out_left[i] < -1.0f) out_left[i] = -1.0f;
@@ -91,6 +97,7 @@ int main() {
     input_ports[0] = jack_port_register(client, "input1", JACK_DEFAULT_AUDIO_TYPE, JackPortIsInput, 0);
     input_ports[1] = jack_port_register(client, "input2", JACK_DEFAULT_AUDIO_TYPE, JackPortIsInput, 0);
     input_ports[2] = jack_port_register(client, "input3", JACK_DEFAULT_AUDIO_TYPE, JackPortIsInput, 0);
+    input_ports[3] = jack_port_register(client, "input4", JACK_DEFAULT_AUDIO_TYPE, JackPortIsInput, 0);
 
     output_ports[0] = jack_port_register(client, "output_left", JACK_DEFAULT_AUDIO_TYPE, JackPortIsOutput, 0);
     output_ports[1] = jack_port_register(client, "output_right", JACK_DEFAULT_AUDIO_TYPE, JackPortIsOutput, 0);
@@ -115,7 +122,7 @@ int main() {
     }
 
     // Connecter les ports d'entrée aux ports de sortie disponibles
-    for (int i = 0; i < 3 && ports[i] != NULL; i++) {
+    for (int i = 0; i < 4 && ports[i] != NULL; i++) {
         if (jack_connect(client, ports[i], jack_port_name(input_ports[i])) != 0) {
             std::cerr << "Erreur lors de la connexion des ports" << std::endl;
         }
@@ -148,9 +155,12 @@ int main() {
                 case 4: v2_right = static_cast<float>(octet2)/255.0f;break;
                 case 5: v3_left =  static_cast<float>(octet2)/255.0f;break;
                 case 6: v3_right = static_cast<float>(octet2)/255.0f;break;
-                case 7 : v1_preset = static_cast<int>(octet2);break;
-                case 8 : v2_preset = static_cast<int>(octet2);break;
-                case 9 : v3_preset = static_cast<int>(octet2);break;
+                case 7: v4_left =  static_cast<float>(octet2)/255.0f;break;
+                case 8: v4_right = static_cast<float>(octet2)/255.0f;break;
+                case 9 : v1_preset = static_cast<int>(octet2);break;
+                case 10 : v2_preset = static_cast<int>(octet2);break;
+                case 11 : v3_preset = static_cast<int>(octet2);break;
+                case 12 : v4_preset = static_cast<int>(octet2);break;
             }
         }
     }
@@ -158,4 +168,5 @@ int main() {
     jack_client_close(client);
     return 0;
 }
+
 
