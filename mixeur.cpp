@@ -19,7 +19,9 @@ float v4_right = 1.0f;
 int v1_preset = 0;
 int v2_preset = 0;
 int v3_preset = 0;
-int v4_preset = 0;
+//int v4_preset = 0;
+
+int FACTOR_DELAY = 4;
 
 float* delayBuffer = nullptr;
 jack_nframes_t delaySize = 0;
@@ -81,8 +83,7 @@ int process(jack_nframes_t nframes, void *arg) {
         float p3  = fx(in3[i], v3_preset);
 
         // --- Lecture delay ---
-        jack_nframes_t readPos =
-            (writePos + delaySize - delaySamples) % delaySize;
+        jack_nframes_t readPos = (writePos + delaySize - delaySamples) % delaySize;
 
         float delayed = delayBuffer[readPos];
 
@@ -91,7 +92,7 @@ int process(jack_nframes_t nframes, void *arg) {
 
         writePos = (writePos + 1) % delaySize;
 
-        float p4 = fx(delayed, v4_preset);
+        float p4 = delayed;//fx(delayed, v4_preset);
 
         // --- Mix ---
         float left =
@@ -194,7 +195,7 @@ int main() {
                 case 10 : v2_preset = static_cast<int>(octet2);break;
                 case 11 : v3_preset = static_cast<int>(octet2);break;
                 case 12 : v4_preset = static_cast<int>(octet2);break;
-                case 13: delaySamples = (jack_get_sample_rate(client) * octet2 * 2) / 1000; break;
+                case 13: delaySamples = (jack_get_sample_rate(client) * octet2 * FACTOR_DELAY) / 1000; break;
             }
         }
     }
