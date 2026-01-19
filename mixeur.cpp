@@ -19,7 +19,7 @@ float v4_right = 1.0f;
 int v1_preset = 0;
 int v2_preset = 0;
 int v3_preset = 0;
-//int v4_preset = 0;
+int v4_preset = 0;
 
 int FACTOR_DELAY = 4;
 
