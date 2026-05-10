@@ -23,6 +23,22 @@ int v4_preset = 0;
 
 int FACTOR_DELAY = 4;
 
+
+float v1_min_sidechain = 0.5f;
+float v2_min_sidechain = 0.25f;
+float v3_min_sidechain = 0.5f;
+float v4_min_sidechain = 0.5f;
+
+int v1_curve_sidechain = 3;
+int v2_curve_sidechain = 3;
+int v3_curve_sidechain = 3;
+int v4_curve_sidechain = 3;
+
+jack_nframes_t sampleRate = 0;
+jack_nframes_t sidechain_elapsed_samples = 0;
+bool sidechain_active = false;
+
+
 float* delayBuffer = nullptr;
 jack_nframes_t delaySize = 0;
 jack_nframes_t writePos = 0;
@@ -66,6 +82,19 @@ float fx(float x, int num) {
     }
 }
 
+void start_sidechain() {
+    sidechain_elapsed_samples = 0;
+    sidechain_active = true;
+}
+
+// curve plus grand = remontée plus rapide au début
+float sidechain_vol(float min, int duration_ms, float elapsed_ms, int curve = 3) {
+    float max = 1.0f;
+    // courbe exponentielle inversée
+    float value = min + (max - min) * (1 - std::exp(-curve * elapsed_ms / static_cast<float>(duration_ms)));
+    return value;
+}
+
 
 int process(jack_nframes_t nframes, void *arg) {
     float *in1 = (float *)jack_port_get_buffer(input_ports[0], nframes);
@@ -94,18 +123,38 @@ int process(jack_nframes_t nframes, void *arg) {
 
         float p4 = delayed;//fx(delayed, v4_preset);
 
+        float v1_sc = 1.0f;
+        float v2_sc = 1.0f;
+        float v3_sc = 1.0f;
+        float v4_sc = 1.0f;
+
+        if (sidechain_active) {
+            float elapsed_ms = (sidechain_elapsed_samples * 1000.0f) / static_cast<float>(sampleRate);
+            if (elapsed_ms > 200.0f) {
+                sidechain_active = false;
+            } else {
+                if (sidechain_elapsed_samples % 200 == 0) { // calculer le sidechain tous les 4 échantillons pour alléger le CPU
+                    v1_sc = sidechain_vol(v1_min_sidechain, 200, elapsed_ms, v1_curve_sidechain);
+                    v2_sc = sidechain_vol(v2_min_sidechain, 200, elapsed_ms, v2_curve_sidechain);
+                    v3_sc = sidechain_vol(v3_min_sidechain, 200, elapsed_ms, v3_curve_sidechain);
+                    v4_sc = sidechain_vol(v4_min_sidechain, 200, elapsed_ms, v4_curve_sidechain);
+                }
+            }
+            sidechain_elapsed_samples++;
+        }
+
         // --- Mix ---
         float left =
-            dry * v1_left +
-            p2  * v2_left +
-            p3  * v3_left +
-            p4  * v4_left;
+            dry * v1_left * v1_sc +
+            p2  * v2_left * v2_sc +
+            p3  * v3_left * v3_sc +
+            p4  * v4_left * v4_sc;
 
         float right =
-            dry * v1_right +
-            p2  * v2_right +
-            p3  * v3_right +
-            p4  * v4_right;
+            dry * v1_right * v1_sc +
+            p2  * v2_right * v2_sc +
+            p3  * v3_right * v3_sc +
+            p4  * v4_right * v4_sc;
 
         // --- Clamp ---
         out_left[i]  = std::max(-1.0f, std::min(1.0f, left));
@@ -134,7 +183,7 @@ int main() {
 
     jack_set_process_callback(client, process, NULL);
 
-    jack_nframes_t sampleRate = jack_get_sample_rate(client);
+    sampleRate = jack_get_sample_rate(client);
     delaySamples = (sampleRate * 300) / 1000;
     delaySize = sampleRate * 2;
     delayBuffer = new float[delaySize];
@@ -196,6 +245,13 @@ int main() {
                 case 11 : v3_preset = static_cast<int>(octet2);break;
                 case 12 : v4_preset = static_cast<int>(octet2);break;
                 case 13: delaySamples = (jack_get_sample_rate(client) * octet2 * FACTOR_DELAY) / 1000; break;
+                case 14: start_sidechain(); break;
+                case 15: v1_min_sidechain = v4_min_sidechain = static_cast<float>(octet2) / 100.0f; break;
+                case 16: v2_min_sidechain = static_cast<float>(octet2) / 100.0f;break;
+                case 17: v3_min_sidechain = static_cast<float>(octet2) / 100.0f;break;
+                case 18: v1_curve_sidechain = v4_curve_sidechain = static_cast<int>(octet2);break;
+                case 19: v2_curve_sidechain = static_cast<int>(octet2);break;
+                case 20: v3_curve_sidechain = static_cast<int>(octet2);break;
             }
         }
     }
