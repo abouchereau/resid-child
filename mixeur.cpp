@@ -133,7 +133,7 @@ int process(jack_nframes_t nframes, void *arg) {
             if (elapsed_ms > 200.0f) {
                 sidechain_active = false;
             } else {
-                if (sidechain_elapsed_samples % 200 == 0) { // calculer le sidechain tous les 4 échantillons pour alléger le CPU
+                if (sidechain_elapsed_samples % 200 == 0) { // calculer le sidechain tous les n échantillons pour alléger le CPU
                     v1_sc = sidechain_vol(v1_min_sidechain, 200, elapsed_ms, v1_curve_sidechain);
                     v2_sc = sidechain_vol(v2_min_sidechain, 200, elapsed_ms, v2_curve_sidechain);
                     v3_sc = sidechain_vol(v3_min_sidechain, 200, elapsed_ms, v3_curve_sidechain);
