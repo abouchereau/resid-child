@@ -27,6 +27,10 @@ float v1_sc = 1.0f;
 float v2_sc = 1.0f;
 float v3_sc = 1.0f;
 
+float v1_calc_sidechain[10] = {1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f};
+float v2_calc_sidechain[10] = {1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f};
+float v3_calc_sidechain[10] = {1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f};
+
 float v1_min_sidechain = 0.5f;
 float v2_min_sidechain = 0.25f;
 float v3_min_sidechain = 0.5f;
@@ -38,7 +42,7 @@ int v3_curve_sidechain = 3;
 jack_nframes_t sampleRate = 0;
 jack_nframes_t sidechain_elapsed_samples = 0;
 bool sidechain_active = false;
-
+int sidechain_iterate = -1;
 
 float* delayBuffer = nullptr;
 jack_nframes_t delaySize = 0;
@@ -84,17 +88,33 @@ float fx(float x, int num) {
 }
 
 void start_sidechain() {
-    sidechain_elapsed_samples = 0;
+    sidechain_elapsed_samples = -1;
     sidechain_active = true;
+    sidechain_iterate = -1;
 }
 
-// curve plus grand = remontée plus rapide au début
-float sidechain_vol(float min, int duration_ms, float elapsed_ms, int curve = 3) {
-    float max = 1.0f;
-    // courbe exponentielle inversée pour un fade-out rapide suivi d'une remontée plus lente
-    return min + (max - min) * (1 - std::exp(-curve * elapsed_ms / static_cast<float>(duration_ms)));
+
+
+void compute_v1_calc_sidechain() {
+    for (int i = 0; i < 10; ++i) {
+        //calcul le sidechain à appliquer tous les 20ms 
+        v1_calc_sidechain[i] = v1_min_sidechain + (1.0f - v1_min_sidechain) * (1 - std::exp(-v1_curve_sidechain * i * 20.0f  / static_cast<float>(200)));
+    }
 }
 
+void compute_v2_calc_sidechain() {
+    for (int i = 0; i < 10; ++i) {
+        //calcul le sidechain à appliquer tous les 20ms 
+        v2_calc_sidechain[i] = v2_min_sidechain + (1.0f - v2_min_sidechain) * (1 - std::exp(-v2_curve_sidechain * i * 20.0f / static_cast<float>(200)));
+    }
+}
+
+void compute_v3_calc_sidechain() {
+    for (int i = 0; i < 10; ++i) {
+        //calcul le sidechain à appliquer tous les 20ms 
+        v3_calc_sidechain[i] = v3_min_sidechain + (1.0f - v3_min_sidechain) * (1 - std::exp(-v3_curve_sidechain * i * 20.0f  / static_cast<float>(200)));
+    }
+}
 
 int process(jack_nframes_t nframes, void *arg) {
     float *in1 = (float *)jack_port_get_buffer(input_ports[0], nframes);
@@ -124,21 +144,23 @@ int process(jack_nframes_t nframes, void *arg) {
         float p4 = delayed;//fx(delayed, v4_preset);
 
         if (sidechain_active) {
-            float elapsed_ms = (sidechain_elapsed_samples * 1000.0f) / static_cast<float>(sampleRate);
-            if (elapsed_ms > 200.0f) {
-                sidechain_active = false;
-                v1_sc = 1.0f;
-                v2_sc = 1.0f;
-                v3_sc = 1.0f;
+            sidechain_elapsed_samples++;
+            //TODO calculer le 882 en fonction du sample rate pour que ça soit plus universel
+            if (sidechain_elapsed_samples % 882 == 0) {
+                sidechain_iterate++;
+                if (sidechain_iterate >= 10) {
+                    sidechain_active = false;
+                    v1_sc = 1.0f;
+                    v2_sc = 1.0f;
+                    v3_sc = 1.0f;
+                }
             } else {
-                if (sidechain_elapsed_samples % 500 == 0) { // calculer le sidechain tous les n échantillons pour alléger le CPU
-                    //TODO précaculer les courbes dans des tables pour éviter les calculs à chaque fois
-                    v1_sc = sidechain_vol(v1_min_sidechain, 200, elapsed_ms, v1_curve_sidechain);
-                    v2_sc = sidechain_vol(v2_min_sidechain, 200, elapsed_ms, v2_curve_sidechain);
-                    v3_sc = sidechain_vol(v3_min_sidechain, 200, elapsed_ms, v3_curve_sidechain);
+                if (sidechain_iterate >= 0 && sidechain_iterate < 10) {
+                    v1_sc = v1_calc_sidechain[sidechain_iterate];
+                    v2_sc = v2_calc_sidechain[sidechain_iterate];
+                    v3_sc = v3_calc_sidechain[sidechain_iterate];
                 }
             }
-            sidechain_elapsed_samples++;
         }
 
         // --- Mix ---
@@ -244,12 +266,12 @@ int main() {
                 case 12 : v4_preset = static_cast<int>(octet2);break;
                 case 13: delaySamples = (jack_get_sample_rate(client) * octet2 * FACTOR_DELAY) / 1000; break;
                 case 14: start_sidechain(); break;
-                case 15: v1_min_sidechain = static_cast<float>(octet2) / 100.0f; break;
-                case 16: v2_min_sidechain = static_cast<float>(octet2) / 100.0f;break;
-                case 17: v3_min_sidechain = static_cast<float>(octet2) / 100.0f;break;
-                case 18: v1_curve_sidechain = static_cast<int>(octet2);break;
-                case 19: v2_curve_sidechain = static_cast<int>(octet2);break;
-                case 20: v3_curve_sidechain = static_cast<int>(octet2);break;
+                case 15: v1_min_sidechain = static_cast<float>(octet2) / 100.0f;compute_v1_calc_sidechain(); break;
+                case 16: v2_min_sidechain = static_cast<float>(octet2) / 100.0f;compute_v2_calc_sidechain(); break;
+                case 17: v3_min_sidechain = static_cast<float>(octet2) / 100.0f;compute_v3_calc_sidechain(); break;
+                case 18: v1_curve_sidechain = static_cast<int>(octet2);compute_v1_calc_sidechain(); break;
+                case 19: v2_curve_sidechain = static_cast<int>(octet2);compute_v2_calc_sidechain(); break;
+                case 20: v3_curve_sidechain = static_cast<int>(octet2);compute_v3_calc_sidechain(); break;
             }
         }
     }
